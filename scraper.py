@@ -1,8 +1,9 @@
-import html5lib, os, glob
+import html5lib, os, glob, re
 from bs4 import BeautifulSoup
+import stringprep
 
-dir_path = 'html_files'
-results_path = 'html_files/modified/'
+dir_path = 'C:\\Users\\csnizik\\NewWorkspace\\FindADoc\\html_files'
+results_path = 'C:\\Users\\csnizik\\NewWorkspace\\FindADoc\\html_files\\modified\\'
 
 
 
@@ -13,13 +14,16 @@ temp_id = 0
 for file_name in glob.glob(os.path.join(dir_path, "*.html")):
 
     my_data = (file_name)
+    print (my_data)
     soup = BeautifulSoup(open(my_data, "r").read(), 'html5lib')
     
-    #print (temp_id)
+    print (temp_id)
     # Iterate through all img tags with the specific id value
     for i in soup.find_all('img', id='ctl00_ContentPlaceHolder2_ctl00_imgPhysician'):
         #in each iteration, i is the entire img tag, so calling it's src attribute will find the source value (the URL)
-        photo_url = 'http://www.chnola.org' + i['src']
+        thumb = os.path.basename(i['src'])
+        photo_url = 'http://www.chnola.org/Upload/Physicians/Images/' + thumb
+        
         
         ############
         # This conditional was to ignore the "thumnophoto.jpg".
@@ -43,9 +47,9 @@ for file_name in glob.glob(os.path.join(dir_path, "*.html")):
         for string in i.stripped_strings:
             name = string
                         
-    for i in soup.find_all('div', class_='physicians_floatleft'):
-        for string in i.stripped_strings:
-            contact_info = string
+    #for i in soup.find_all('div', class_='physicians_floatleft'):
+        #for string in i.stripped_strings:
+            #contact_info = string
             # NOTE: I know this isn't the way these lists should be done. This just plops everything into a string and outputs it without
             # regard for creating pairs of contentType & content (i.e., Phone Number = xxx, Fax Number = yyy, etc.
             
@@ -67,27 +71,27 @@ for file_name in glob.glob(os.path.join(dir_path, "*.html")):
         for string in i.stripped_strings:
             list_dept.append(string)
             
+    list_edu = []
+    list_eduType = []
+    list_eduSchool = []
     dict_edu = []
-    #for i in soup.find_all('div', id='divEducation'):
-    all_edu = soup.find_all('div', id='divEducation')
-    for i in all_edu:
-        for e in i.find_all('span', class_='physicians_text_reg1 bold', recursive=False):
-            edu_type = e.get_text(strip=True)
-            print ('Edu type: ' + edu_type + '\n')
-            e1 = e.find_parent()
-            edu_sch = e1.get_text(strip=True)
-            print ('Edu school: ' + edu_sch + '\n')
-
-            
-            
-    ### HERE IS WHERE I'M STUCK. TRYING TO FIGURE OUT HOW TO STEP THROUGH THE 
-    ### BIG MASS OF CRAP IN THE EDU DIV AND MATCH AN EDU TYPE TO A SCHOOL.
-    ### NOT SURE HOW TO ITERATE THROUGH IT.
-    ### 
-    ### MY DICTIONARY 'dict_edu' IS READY TO TAKE IT.
-    ###
     
+    for i in soup.find_all('div', id='divEducation'):
+        for string in i.stripped_strings:
+            list_edu.append(string) #This throws every discrete string into one list. Is there a way to populate key/items into a dictionary in alternating fashion? If so, use it instead.
     
+    for i in list_edu:
+        if re.match('^Medical|^Residency|^Fellowship|^Professional|^Internship', i) is not None:
+            list_eduType.append(i)
+        else:
+            list_eduSchool.append(i) #Clunky. This finds the four "education types" that I know are in the divs and turns them into keys. Clunky.
+    
+    from itertools import zip_longest
+    dict_edu = dict(zip_longest(list_eduType, list_eduSchool)) #Zip the lists into a dictionary.
+    
+    print (dict_edu.items()) #Iterate through the dictionary to show key/item pairs.
+       
+      
     
         #NOTE TO SELF: you have to recycle this repetitive stuff into functions. Figure out the actions that happen in every loop, or are repeated in different loops.
         
@@ -115,9 +119,8 @@ for file_name in glob.glob(os.path.join(dir_path, "*.html")):
         html_file.write ('<h1>')
         html_file.write (name + '</h1>\n')
         html_file.write ('<p>Gender: ' + gender + '</p>\n')
-        if photo_url is not None:
-            html_file.write ('<div style=\"display: block;\">\n\t<img src=\"' + photo_url + '\">\n</div>\n')
-        html_file.write ('<h3>Contact info:</h3>fd\n<pre>' + contact_info + '</pre>')
+        html_file.write ('<div style=\"display: block;\">\n\t<img src=\"' + photo_url + '\">\n</div>\n')
+        #html_file.write ('<h3>Contact info:</h3>fd\n<pre>' + contact_info + '</pre>')
         html_file.write ('<h3>Specialties</h3>\n<ul>\n')
         # Iterate through the list of specialties, printing each one in a <li>
         # NOTE: this is going to be how you create the CSV file. Pay attention to what you did here.
@@ -125,11 +128,11 @@ for file_name in glob.glob(os.path.join(dir_path, "*.html")):
             html_file.write ('\t<li>' + i)
             html_file.write ('</li>\n')
         html_file.write ('</ul>\n\n')
+        html_file.write ('<ul>\n')
         for i in list_dept:
             html_file.write ('\t<li>' + i)
             html_file.write ('</li>\n')
         html_file.write ('</ul>\n\n')
-
         html_file.write ('</body>\n\n</html>')
         
         
