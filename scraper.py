@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 dir_path = 'html_files'
 results_path = 'html_files/modified/'
 
+
+
 # Set a counter for each physician. This won't necessarily be their id, just a unique counter for each record here.
 temp_id = 0
 
@@ -58,7 +60,33 @@ for file_name in glob.glob(os.path.join(dir_path, "*.html")):
             #else:
                 #specialties = string
             list_spec.append(string)
+            
+    list_dept = []
+       
+    for i in soup.find_all('div', id='divDepartments'):
+        for string in i.stripped_strings:
+            list_dept.append(string)
+            
+    dict_edu = []
+    #for i in soup.find_all('div', id='divEducation'):
+    all_edu = soup.find_all('div', id='divEducation')
+    for i in all_edu:
+        for e in i.find_all('span', class_='physicians_text_reg1 bold', recursive=False):
+            edu_type = e.get_text(strip=True)
+            print ('Edu type: ' + edu_type + '\n')
+            e1 = e.find_parent()
+            edu_sch = e1.get_text(strip=True)
+            print ('Edu school: ' + edu_sch + '\n')
 
+            
+            
+    ### HERE IS WHERE I'M STUCK. TRYING TO FIGURE OUT HOW TO STEP THROUGH THE 
+    ### BIG MASS OF CRAP IN THE EDU DIV AND MATCH AN EDU TYPE TO A SCHOOL.
+    ### NOT SURE HOW TO ITERATE THROUGH IT.
+    ### 
+    ### MY DICTIONARY 'dict_edu' IS READY TO TAKE IT.
+    ###
+    
     
     
         #NOTE TO SELF: you have to recycle this repetitive stuff into functions. Figure out the actions that happen in every loop, or are repeated in different loops.
@@ -67,6 +95,14 @@ for file_name in glob.glob(os.path.join(dir_path, "*.html")):
     # Write this physician's data into an html file. Alternatively, you can move the write function out of the loop altogether and create one aggregate file,
     # but that would require learning how to populate tuples with all of the collected data, accounting for the fact that some physicians will have more
     # and some less.
+    
+    for i in soup.find_all('ul', id='ctl00_ContentPlaceHolder2_ctl00_ulGender'):
+        for string in i.find_all('li', class_='physicians_docProfile_details_right'):
+            # soup.get_text() pulls just the text contents of a tag, and strip=True strips whitespace from the beg and end.
+            gender = string.get_text(strip=True)
+            
+        #need to go into the string, find the correct one (class = "... right") and grab it.
+        
     
     results_file = os.path.splitext(results_path)[0] + 'record-' + str(temp_id) + '.html'
     # LOOK AT ME! All those time I got the error Can't convert 'int' object to str implicitly... DUH, you have to convert an int
@@ -78,9 +114,10 @@ for file_name in glob.glob(os.path.join(dir_path, "*.html")):
         html_file.write ('<h2>ID # ' + str(temp_id) + '</h2>\n')
         html_file.write ('<h1>')
         html_file.write (name + '</h1>\n')
+        html_file.write ('<p>Gender: ' + gender + '</p>\n')
         if photo_url is not None:
             html_file.write ('<div style=\"display: block;\">\n\t<img src=\"' + photo_url + '\">\n</div>\n')
-        html_file.write ('<h3>Contact info:</h3><pre>' + contact_info + '</pre>')
+        html_file.write ('<h3>Contact info:</h3>fd\n<pre>' + contact_info + '</pre>')
         html_file.write ('<h3>Specialties</h3>\n<ul>\n')
         # Iterate through the list of specialties, printing each one in a <li>
         # NOTE: this is going to be how you create the CSV file. Pay attention to what you did here.
@@ -88,6 +125,11 @@ for file_name in glob.glob(os.path.join(dir_path, "*.html")):
             html_file.write ('\t<li>' + i)
             html_file.write ('</li>\n')
         html_file.write ('</ul>\n\n')
+        for i in list_dept:
+            html_file.write ('\t<li>' + i)
+            html_file.write ('</li>\n')
+        html_file.write ('</ul>\n\n')
+
         html_file.write ('</body>\n\n</html>')
         
         
